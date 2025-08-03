@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hive</title>
+    <!-- Use Tailwind CSS for a modern and responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a clean, modern look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Defining the core color palette variables */
+        :root {
+            --primary-blue: #0077ff; /* A bright, friendly blue */
+            --light-blue: #e6f2ff;   /* A very light blue for backgrounds */
+            --dark-blue: #001f4d;    /* A deep, dark blue */
+            --white: #ffffff;
+            --black: #000000;
+        }
+
+        /* Keyframes for the swipe animations */
+        @keyframes swipe-left {
+            from { transform: translateX(0) rotate(0deg); opacity: 1; }
+            to { transform: translateX(-150%) rotate(-30deg); opacity: 0; }
+        }
+
+        @keyframes swipe-right {
+            from { transform: translateX(0) rotate(0deg); opacity: 1; }
+            to { transform: translateX(150%) rotate(30deg); opacity: 0; }
+        }
+        
+        /* Keyframes for page transitions */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Utility classes for animations */
+        .animate-swipe-left { animation: swipe-left 0.5s ease-in-out forwards; }
+        .animate-swipe-right { animation: swipe-right 0.5s ease-in-out forwards; }
+        .page { animation: fadeIn 0.5s ease-in-out; }
+        .interest-chip {
+            transition: all 0.2s ease-in-out;
+        }
+        /* Custom styling for the Google button */
+        .google-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .google-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-start min-h-screen">
+
+    <!-- Main App Container -->
+    <div class="relative w-full max-w-md mx-auto h-screen bg-white shadow-lg overflow-hidden flex flex-col">
+        
+        <!-- Loading spinner and overlay -->
+        <div id="loading-overlay" class="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-[100] hidden">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+
+        <!-- Referral Page -->
+        <div id="referral-page" class="page w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-500 to-blue-700 text-white">
+            <h1 class="text-4xl font-extrabold mb-4">Hive</h1>
+            <p class="text-xl font-light mb-8 text-center">Find your next campus connection</p>
+            <form id="referral-form" class="w-full max-w-xs space-y-6">
+                <input id="referral-code-input" type="text" placeholder="Enter Referral Code" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all" required>
+                <button type="submit" class="w-full p-4 text-lg font-bold bg-white text-blue-600 rounded-xl shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all">
+                    Enter Hive
+                </button>
+            </form>
+            <p id="referral-error" class="mt-4 text-red-300 hidden">Invalid referral code. Please try again.</p>
+        </div>
+
+        <!-- Welcome/Login Choice Page -->
+        <div id="welcome-page" class="page hidden w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-500 to-blue-700 text-white">
+            <h1 class="text-4xl font-extrabold mb-4">Welcome to the Hive!</h1>
+            <p class="text-xl font-light mb-8 text-center">Ready to find your honey? Log in or create an account!</p>
+            <div class="w-full max-w-xs space-y-4">
+                <button id="go-to-login-btn" class="w-full p-4 text-lg font-bold bg-white text-blue-600 rounded-xl shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all">
+                    Log In
+                </button>
+                <button id="go-to-signup-btn" class="w-full p-4 text-lg font-bold bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transform hover:scale-105 transition-all">
+                    Create Account
+                </button>
+            </div>
+        </div>
+
+        <!-- Login Page -->
+        <div id="login-page" class="page hidden w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-500 to-blue-700 text-white">
+            <h1 class="text-4xl font-extrabold mb-4">Welcome Back!</h1>
+            <p class="text-xl font-light mb-8 text-center">Log in to continue your journey</p>
+            <form id="login-form" class="w-full max-w-xs space-y-4">
+                <input type="email" id="login-email" placeholder="Email" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300" required>
+                <input type="password" id="login-password" placeholder="Password" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300" required>
+                <button type="submit" class="w-full p-4 text-lg font-bold bg-white text-blue-600 rounded-xl shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all">
+                    Log In
+                </button>
+            </form>
+            <div class="my-6 w-full max-w-xs flex items-center">
+                <hr class="flex-grow border-white/30">
+                <span class="px-2 text-white/70 text-sm">OR</span>
+                <hr class="flex-grow border-white/30">
+            </div>
+            <button id="google-login-btn" class="google-button w-full max-w-xs flex items-center justify-center p-3 bg-white text-gray-700 rounded-xl font-semibold hover:bg-gray-100">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 10.375C27.9719 10.375 31.3912 11.9056 33.8239 14.1843L37.7958 10.2125C34.2575 7.15375 29.5938 5.625 24 5.625C15.65 5.625 8.58375 10.2225 5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375H24Z" fill="#EA4335"/>
+                    <path d="M42.2778 24.3637C42.2778 22.8462 42.1262 21.3287 41.8369 19.8637H24V27.5362H35.0894C34.8219 29.2312 33.9187 30.7387 32.7487 31.8487C31.5787 32.9587 30.1387 33.815 28.5375 34.2869L33.7975 37.9775C36.75 35.155 38.625 31.4287 39.5137 27.2437C40.4025 23.0587 40.8562 18.665 40.8562 14.2662L41.8369 10.2125L42.2778 24.3637Z" fill="#4285F4"/>
+                    <path d="M24 39.375C17.1537 39.375 11.3819 35.2156 8.58375 29.3512L13.8437 25.6606C15.0137 26.7706 16.4537 27.6269 18.055 28.0987C19.6562 28.5706 21.325 28.8187 23.0337 28.8187C25.7887 28.8187 28.275 27.6081 30.3756 25.8581C32.4762 24.1081 34.0644 21.7162 35.0775 18.94L40.3375 22.6306C37.8938 27.7669 34.3562 31.9262 29.5938 34.985C27.1612 37.2637 24.0337 38.805 20.865 39.375H24Z" fill="#FBBC05"/>
+                    <path d="M5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375H24V5.625H22.4287C15.65 5.625 9.87812 9.78438 7.125 15.6487C6.11187 18.425 4.52375 20.8169 2.42313 22.5669C0.3225 24.3169 -2.16312 25.5275 -4.91812 26.115V26.1269C-4.04187 29.9887 -3.39187 34.2056 -3.07625 38.3906L2.18375 34.7006C2.95125 32.9594 3.71875 31.2181 4.545 29.4769L5.125 17.1512Z" fill="#34A853"/>
+                    <path d="M22.4287 10.375H24V5.625H22.4287C15.65 5.625 9.87812 9.78438 7.125 15.6487C6.11187 18.425 4.52375 20.8169 2.42313 22.5669C0.3225 24.3169 -2.16312 25.5275 -4.91812 26.115V26.1269L2.18375 34.7006C2.95125 32.9594 3.71875 31.2181 4.545 29.4769L5.125 17.1512Z" fill="#000000" opacity="0"/>
+                    <path d="M24 10.375C27.9719 10.375 31.3912 11.9056 33.8239 14.1843L37.7958 10.2125C34.2575 7.15375 29.5938 5.625 24 5.625C15.65 5.625 8.58375 10.2225 5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375Z" fill="#000000" opacity="0"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <button id="go-to-signup-from-login-btn" class="mt-4 text-white text-sm font-semibold opacity-70 hover:opacity-100 transition-opacity">
+                Don't have an account? Sign Up
+            </button>
+            <p id="login-error" class="mt-4 text-red-300 hidden"></p>
+        </div>
+
+        <!-- Signup Page -->
+        <div id="signup-page" class="page hidden w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-500 to-blue-700 text-white">
+            <h1 class="text-4xl font-extrabold mb-4">Create Your Account</h1>
+            <p class="text-xl font-light mb-8 text-center">Join the Hive community</p>
+            <form id="signup-form" class="w-full max-w-xs space-y-4">
+                <input type="email" id="signup-email" placeholder="Email" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300" required>
+                <input type="password" id="signup-password" placeholder="Password" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300" required>
+                <button type="submit" class="w-full p-4 text-lg font-bold bg-white text-blue-600 rounded-xl shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all">
+                    Sign Up
+                </button>
+            </form>
+            <div class="my-6 w-full max-w-xs flex items-center">
+                <hr class="flex-grow border-white/30">
+                <span class="px-2 text-white/70 text-sm">OR</span>
+                <hr class="flex-grow border-white/30">
+            </div>
+            <button id="google-signup-btn" class="google-button w-full max-w-xs flex items-center justify-center p-3 bg-white text-gray-700 rounded-xl font-semibold hover:bg-gray-100">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 10.375C27.9719 10.375 31.3912 11.9056 33.8239 14.1843L37.7958 10.2125C34.2575 7.15375 29.5938 5.625 24 5.625C15.65 5.625 8.58375 10.2225 5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375H24Z" fill="#EA4335"/>
+                    <path d="M42.2778 24.3637C42.2778 22.8462 42.1262 21.3287 41.8369 19.8637H24V27.5362H35.0894C34.8219 29.2312 33.9187 30.7387 32.7487 31.8487C31.5787 32.9587 30.1387 33.815 28.5375 34.2869L33.7975 37.9775C36.75 35.155 38.625 31.4287 39.5137 27.2437C40.4025 23.0587 40.8562 18.665 40.8562 14.2662L41.8369 10.2125L42.2778 24.3637Z" fill="#4285F4"/>
+                    <path d="M24 39.375C17.1537 39.375 11.3819 35.2156 8.58375 29.3512L13.8437 25.6606C15.0137 26.7706 16.4537 27.6269 18.055 28.0987C19.6562 28.5706 21.325 28.8187 23.0337 28.8187C25.7887 28.8187 28.275 27.6081 30.3756 25.8581C32.4762 24.1081 34.0644 21.7162 35.0775 18.94L40.3375 22.6306C37.8938 27.7669 34.3562 31.9262 29.5938 34.985C27.1612 37.2637 24.0337 38.805 20.865 39.375H24Z" fill="#FBBC05"/>
+                    <path d="M5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375H24V5.625H22.4287C15.65 5.625 9.87812 9.78438 7.125 15.6487C6.11187 18.425 4.52375 20.8169 2.42313 22.5669C0.3225 24.3169 -2.16312 25.5275 -4.91812 26.115V26.1269C-4.04187 29.9887 -3.39187 34.2056 -3.07625 38.3906L2.18375 34.7006C2.95125 32.9594 3.71875 31.2181 4.545 29.4769L5.125 17.1512Z" fill="#34A853"/>
+                    <path d="M22.4287 10.375H24V5.625H22.4287C15.65 5.625 9.87812 9.78438 7.125 15.6487C6.11187 18.425 4.52375 20.8169 2.42313 22.5669C0.3225 24.3169 -2.16312 25.5275 -4.91812 26.115V26.1269L2.18375 34.7006C2.95125 32.9594 3.71875 31.2181 4.545 29.4769L5.125 17.1512Z" fill="#000000" opacity="0"/>
+                    <path d="M24 10.375C27.9719 10.375 31.3912 11.9056 33.8239 14.1843L37.7958 10.2125C34.2575 7.15375 29.5938 5.625 24 5.625C15.65 5.625 8.58375 10.2225 5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375Z" fill="#000000" opacity="0"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <button id="go-to-signup-from-login-btn" class="mt-4 text-white text-sm font-semibold opacity-70 hover:opacity-100 transition-opacity">
+                Don't have an account? Sign Up
+            </button>
+            <p id="login-error" class="mt-4 text-red-300 hidden"></p>
+        </div>
+
+        <!-- Signup Page -->
+        <div id="signup-page" class="page hidden w-full h-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-500 to-blue-700 text-white">
+            <h1 class="text-4xl font-extrabold mb-4">Create Your Account</h1>
+            <p class="text-xl font-light mb-8 text-center">Join the Hive community</p>
+            <form id="signup-form" class="w-full max-w-xs space-y-4">
+                <input type="email" id="signup-email" placeholder="Email" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300" required>
+                <input type="password" id="signup-password" placeholder="Password" class="w-full p-4 rounded-xl bg-white text-gray-900 placeholder-gray-500 shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300" required>
+                <button type="submit" class="w-full p-4 text-lg font-bold bg-white text-blue-600 rounded-xl shadow-lg hover:bg-gray-100 transform hover:scale-105 transition-all">
+                    Sign Up
+                </button>
+            </form>
+            <div class="my-6 w-full max-w-xs flex items-center">
+                <hr class="flex-grow border-white/30">
+                <span class="px-2 text-white/70 text-sm">OR</span>
+                <hr class="flex-grow border-white/30">
+            </div>
+            <button id="google-signup-btn" class="google-button w-full max-w-xs flex items-center justify-center p-3 bg-white text-gray-700 rounded-xl font-semibold hover:bg-gray-100">
+                <svg class="w-6 h-6 mr-3" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 10.375C27.9719 10.375 31.3912 11.9056 33.8239 14.1843L37.7958 10.2125C34.2575 7.15375 29.5938 5.625 24 5.625C15.65 5.625 8.58375 10.2225 5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375H24Z" fill="#EA4335"/>
+                    <path d="M42.2778 24.3637C42.2778 22.8462 42.1262 21.3287 41.8369 19.8637H24V27.5362H35.0894C34.8219 29.2312 33.9187 30.7387 32.7487 31.8487C31.5787 32.9587 30.1387 33.815 28.5375 34.2869L33.7975 37.9775C36.75 35.155 38.625 31.4287 39.5137 27.2437C40.4025 23.0587 40.8562 18.665 40.8562 14.2662L41.8369 10.2125L42.2778 24.3637Z" fill="#4285F4"/>
+                    <path d="M24 39.375C17.1537 39.375 11.3819 35.2156 8.58375 29.3512L13.8437 25.6606C15.0137 26.7706 16.4537 27.6269 18.055 28.0987C19.6562 28.5706 21.325 28.8187 23.0337 28.8187C25.7887 28.8187 28.275 27.6081 30.3756 25.8581C32.4762 24.1081 34.0644 21.7162 35.0775 18.94L40.3375 22.6306C37.8938 27.7669 34.3562 31.9262 29.5938 34.985C27.1612 37.2637 24.0337 38.805 20.865 39.375H24Z" fill="#FBBC05"/>
+                    <path d="M5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375H24V5.625H22.4287C15.65 5.625 9.87812 9.78438 7.125 15.6487C6.11187 18.425 4.52375 20.8169 2.42313 22.5669C0.3225 24.3169 -2.16312 25.5275 -4.91812 26.115V26.1269C-4.04187 29.9887 -3.39187 34.2056 -3.07625 38.3906L2.18375 34.7006C2.95125 32.9594 3.71875 31.2181 4.545 29.4769L5.125 17.1512Z" fill="#34A853"/>
+                    <path d="M22.4287 10.375H24V5.625H22.4287C15.65 5.625 9.87812 9.78438 7.125 15.6487C6.11187 18.425 4.52375 20.8169 2.42313 22.5669C0.3225 24.3169 -2.16312 25.5275 -4.91812 26.115V26.1269L2.18375 34.7006C2.95125 32.9594 3.71875 31.2181 4.545 29.4769L5.125 17.1512Z" fill="#000000" opacity="0"/>
+                    <path d="M24 10.375C27.9719 10.375 31.3912 11.9056 33.8239 14.1843L37.7958 10.2125C34.2575 7.15375 29.5938 5.625 24 5.625C15.65 5.625 8.58375 10.2225 5.125 17.1512L10.385 20.8419C11.3981 18.0656 12.9862 15.6737 15.0869 13.9237C17.1875 12.1737 19.6737 10.9631 22.4287 10.375Z" fill="#000000" opacity="0"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <p id="signup-error" class="mt-4 text-red-300 hidden"></p>
+        </div>
+
+        <!-- Onboarding Details Page -->
+        <div id="details-page" class="page hidden w-full h-full p-8 flex flex-col overflow-y-auto">
+            <h1 class="text-3xl font-extrabold text-blue-600 mb-6">Create Your Profile</h1>
+            <form id="details-form" class="space-y-6 flex-grow">
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2" for="user-name">Name</label>
+                    <input id="user-name" type="text" class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 outline-none transition-colors" placeholder="e.g., Jane Doe" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2" for="user-age">Age</label>
+                    <input id="user-age" type="number" class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 outline-none transition-colors" placeholder="e.g., 20" min="18" max="99" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2" for="user-major">Major / Branch</label>
+                    <input id="user-major" type="text" class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 outline-none transition-colors" placeholder="e.g., Computer Science" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2" for="user-semester">Semester</label>
+                    <input id="user-semester" type="number" class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 outline-none transition-colors" placeholder="e.g., 5" min="1" max="10" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2" for="user-bio">Bio</label>
+                    <textarea id="user-bio" class="w-full p-3 rounded-xl border-2 border-gray-200 focus:border-blue-500 outline-none transition-colors" placeholder="Tell us about yourself..." required></textarea>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">Gender</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="gender" value="male" class="text-blue-600 focus:ring-blue-500" required>
+                            <span class="ml-2 text-gray-700">Male</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="gender" value="female" class="text-blue-600 focus:ring-blue-500" required>
+                            <span class="ml-2 text-gray-700">Female</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-gray-700 font-bold mb-2">Interests (Select up to 5)</label>
+                    <div id="interests-container" class="flex flex-wrap gap-2">
+                        <!-- Interests will be generated here by JS -->
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <label class="block text-gray-700 font-bold mb-2">Upload Photos (Min. 3)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="relative w-full aspect-[4/5] bg-gray-200 rounded-xl overflow-hidden group">
+                            <input type="file" class="absolute inset-0 opacity-0 cursor-pointer photo-input" accept="image/*" data-photo-id="1" required>
+                            <img class="w-full h-full object-cover photo-preview hidden" src="" alt="Photo 1">
+                            <span class="absolute inset-0 flex items-center justify-center text-gray-500 text-4xl font-light group-hover:bg-black/20 group-hover:text-white transition-colors">+</span>
+                        </div>
+                        <div class="relative w-full aspect-[4/5] bg-gray-200 rounded-xl overflow-hidden group">
+                            <input type="file" class="absolute inset-0 opacity-0 cursor-pointer photo-input" accept="image/*" data-photo-id="2" required>
+                            <img class="w-full h-full object-cover photo-preview hidden" src="" alt="Photo 2">
+                            <span class="absolute inset-0 flex items-center justify-center text-gray-500 text-4xl font-light group-hover:bg-black/20 group-hover:text-white transition-colors">+</span>
+                        </div>
+                        <div class="relative w-full aspect-[4/5] bg-gray-200 rounded-xl overflow-hidden group">
+                            <input type="file" class="absolute inset-0 opacity-0 cursor-pointer photo-input" accept="image/*" data-photo-id="3" required>
+                            <img class="w-full h-full object-cover photo-preview hidden" src="" alt="Photo 3">
+                            <span class="absolute inset-0 flex items-center justify-center text-gray-500 text-4xl font-light group-hover:bg-black/20 group-hover:text-white transition-colors">+</span>
+                        </div>
+                    </div>
+                    <p class="text-sm text-red-500 hidden" id="photo-error">Please upload at least 3 photos.</p>
+                </div>
+                <button type="submit" class="w-full p-4 text-lg font-bold bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transform hover:scale-105 transition-all">
+                    Complete Profile
+                </button>
+            </form>
+        </div>
+        
+        <!-- Main Swiping Page -->
+        <div id="home-page" class="page hidden w-full h-full p-4 flex flex-col">
+            <!-- Header -->
+            <header class="flex justify-between items-center p-2 mb-4">
+                <h2 class="text-3xl font-extrabold text-blue-600">hive.</h2>
+                <div class="flex items-center space-x-2">
+                    <button class="p-2 text-gray-500 hover:text-blue-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Profile Card Container -->
+            <div id="profile-container" class="relative flex-grow flex items-center justify-center">
+                <!-- Profile cards will be injected here by JavaScript -->
+            </div>
+
+            <!-- No More Profiles Message -->
+            <div id="no-more-profiles" class="hidden text-center p-8 rounded-3xl mt-8">
+                <h2 class="text-2xl font-bold text-gray-900">Looks like we're out of honey for now!</h2>
+                <p class="mt-2 text-gray-600">No more profiles to show in the hive. Check back later!</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-center space-x-8 my-4">
+                <!-- Dislike Button -->
+                <button id="dislike-btn" class="p-5 bg-white text-red-500 rounded-full shadow-lg transition-all duration-200 transform hover:scale-110 hover:bg-red-500 hover:text-white focus:outline-none focus:ring-4 focus:ring-red-500/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x">
+                        <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                    </svg>
+                </button>
+                <!-- Like Button -->
+                <button id="like-btn" class="p-5 bg-white text-blue-600 rounded-full shadow-lg transition-all duration-200 transform hover:scale-110 hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-600/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart">
+                        <path d="M19 14c1.49-1.46 3-3.23 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.27 1.5 4.04 3 5.5l7 7Z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages Page -->
+        <div id="messages-page" class="page hidden w-full h-full p-4 flex flex-col">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6 mt-4">Messages</h1>
+            <div id="matches-list" class="flex-grow overflow-y-auto space-y-4">
+                <!-- Matched users will be displayed here -->
+                <p id="no-matches-message" class="text-gray-500 text-center mt-8">You don't have any matches yet.</p>
+            </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile-page" class="page hidden w-full h-full p-4 flex flex-col items-center overflow-y-auto">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6 mt-4">My Profile</h1>
+            <div id="my-profile-image-container" class="relative w-48 h-48 rounded-full overflow-hidden shadow-xl ring-4 ring-blue-500 ring-offset-4 ring-offset-white mb-4">
+                <img id="my-profile-photo" src="" alt="User profile photo" class="w-full h-full object-cover">
+            </div>
+            <h2 id="my-profile-name-age" class="text-2xl font-bold text-gray-900 mt-2"></h2>
+            <p id="my-profile-major" class="text-gray-600 mt-1"></p>
+            <div class="mt-6 p-4 bg-gray-50 rounded-2xl shadow-inner w-full max-w-sm">
+                <h3 class="text-xl font-bold text-gray-900 mb-2">My Interests</h3>
+                <div id="my-profile-interests" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div class="mt-6 p-4 bg-gray-50 rounded-2xl shadow-inner w-full max-w-sm text-center">
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Refer a friend!</h3>
+                <p class="text-gray-700 mb-4">Share this unique code for others to join.</p>
+                <div class="flex items-center justify-between bg-white rounded-xl p-3 shadow-md">
+                    <span id="referral-code-display" class="font-mono text-gray-700 text-sm md:text-base"></span>
+                    <button id="copy-referral-btn" class="ml-2 p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy">
+                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <p id="user-id-display" class="mt-4 text-xs text-gray-500">
+                User ID: <span id="user-id-value" class="font-mono"></span>
+            </p>
+            <button id="logout-btn" class="mt-6 p-3 w-full max-w-sm text-lg font-bold bg-gray-200 text-red-500 rounded-xl shadow-lg hover:bg-red-500 hover:text-white transform hover:scale-105 transition-all">
+                Log Out
+            </button>
+        </div>
+
+        <!-- Message/Modal Box -->
+        <div id="modal-container" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 shadow-xl max-w-sm w-full text-center">
+                <p id="modal-message" class="text-gray-800 text-lg"></p>
+                <button id="modal-close-btn" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">OK</button>
+            </div>
+        </div>
+
+        <!-- Match Found Pop-up -->
+        <div id="match-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center scale-95 animate-bounce-in transform-gpu">
+                <h2 class="text-4xl font-extrabold">It's a Sw-ipe-rfect Match!</h2>
+                <p id="match-name" class="text-xl mt-2"></p>
+                <img id="match-photo" src="" alt="Matched user photo" class="w-32 h-32 rounded-full object-cover mx-auto my-6 ring-4 ring-white shadow-lg">
+                <button id="match-chat-btn" class="mt-4 px-6 py-3 bg-white text-purple-600 font-bold rounded-full shadow-lg hover:bg-gray-200 transition-colors">Start Chatting</button>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation Bar -->
+        <nav id="app-nav" class="hidden absolute bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 shadow-t-xl flex justify-around items-center rounded-t-3xl">
+            <button id="nav-home" class="flex-1 flex flex-col items-center text-gray-400 hover:text-blue-600 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart">
+                    <path d="M19 14c1.49-1.46 3-3.23 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.27 1.5 4.04 3 5.5l7 7Z"/>
+                </svg>
+                <span class="text-xs mt-1 font-semibold">Home</span>
+            </button>
+            <button id="nav-messages" class="flex-1 flex flex-col items-center text-gray-400 hover:text-blue-600 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span class="text-xs mt-1">Messages</span>
+            </button>
+            <button id="nav-profile" class="flex-1 flex flex-col items-center text-gray-400 hover:text-blue-600 transition-colors duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span class="text-xs mt-1">Profile</span>
+            </button>
+        </nav>
+        
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // IMPORTANT: The following variables are automatically injected by the environment for local testing.
+        // If you are hosting this app yourself, you will need to replace these with your actual Firebase project credentials.
+        // You can find these in your Firebase Console under "Project settings".
+        const appId = "hive-dating-app"; // Using the project ID for the appId
+        
+        // --- YOUR FIREBASE CONFIGURATION GOES HERE ---
+        // I have added your specific firebaseConfig object below.
+        const firebaseConfig = {
+          apiKey: "AIzaSyCRwoZz2Q9Gn3EemCO2NQBqZ4x3wPuQFvw",
+          authDomain: "hive-dating-app.firebaseapp.com",
+          projectId: "hive-dating-app",
+          storageBucket: "hive-dating-app.firebasestorage.app",
+          messagingSenderId: "77015984138",
+          appId: "1:77015984138:web:2de8ee1f5458e3e62197f3",
+          measurementId: "G-CPKCXP9C6C"
+        };
+
+        const initialAuthToken = null; // No longer needed as we have explicit auth
+        
+        const initialReferralCode = '1234567890';
+        
+        let db;
+        let auth;
+        let currentUser = null;
+        let userId = null;
+        let matchedProfiles = [];
+        let currentIndex = 0;
+        let matchListener;
+        let matches = [];
+
+        // All possible interests for the sign-up form
+        const availableInterests = ['Coding', 'Hiking', 'Coffee', 'Music', 'Robotics', 'Gaming', 'Reading', 'Painting', 'Psychology', 'Basketball', 'Cooking', 'Entrepreneurship', 'Art', 'History'];
+
+        // Get references to the DOM elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const referralPage = document.getElementById('referral-page');
+        const welcomePage = document.getElementById('welcome-page');
+        const loginPage = document.getElementById('login-page');
+        const signupPage = document.getElementById('signup-page');
+        const detailsPage = document.getElementById('details-page');
+        const homePage = document.getElementById('home-page');
+        const messagesPage = document.getElementById('messages-page');
+        const profilePage = document.getElementById('profile-page');
+        const referralForm = document.getElementById('referral-form');
+        const referralCodeInput = document.getElementById('referral-code-input');
+        const referralError = document.getElementById('referral-error');
+        const goToLoginBtn = document.getElementById('go-to-login-btn');
+        const goToSignupBtn = document.getElementById('go-to-signup-btn');
+        const loginForm = document.getElementById('login-form');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const loginError = document.getElementById('login-error');
+        const signupForm = document.getElementById('signup-form');
+        const googleSignupBtn = document.getElementById('google-signup-btn');
+        const signupError = document.getElementById('signup-error');
+        const detailsForm = document.getElementById('details-form');
+        const profileContainer = document.getElementById('profile-container');
+        const noMoreProfilesMessage = document.getElementById('no-more-profiles');
+        const dislikeBtn = document.getElementById('dislike-btn');
+        const likeBtn = document.getElementById('like-btn');
+        const navHomeBtn = document.getElementById('nav-home');
+        const navMessagesBtn = document.getElementById('nav-messages');
+        const navProfileBtn = document.getElementById('nav-profile');
+        const interestsContainer = document.getElementById('interests-container');
+        const copyReferralBtn = document.getElementById('copy-referral-btn');
+        const photoInputs = document.querySelectorAll('.photo-input');
+        const photoPreviews = document.querySelectorAll('.photo-preview');
+        const photoError = document.getElementById('photo-error');
+        const modalContainer = document.getElementById('modal-container');
+        const modalMessage = document.getElementById('modal-message');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const userIdValue = document.getElementById('user-id-value');
+        const appNav = document.getElementById('app-nav');
+        const logoutBtn = document.getElementById('logout-btn');
+        const matchModal = document.getElementById('match-modal');
+        const matchName = document.getElementById('match-name');
+        const matchPhoto = document.getElementById('match-photo');
+        const matchChatBtn = document.getElementById('match-chat-btn');
+        const matchesList = document.getElementById('matches-list');
+
+        // Helper function to show a custom modal instead of alert()
+        function showModal(message) {
+            modalMessage.textContent = message;
+            modalContainer.classList.remove('hidden');
+        }
+        
+        function showLoading(show) {
+            loadingOverlay.classList.toggle('hidden', !show);
+        }
+
+        // --- Firebase Initialization and Authentication ---
+
+        // A flag to prevent re-routing during a navigation sequence
+        let isNavigating = false;
+
+        // Initialize Firebase services on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            showLoading(true);
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    // Add initial referral code to Firestore if it doesn't exist
+                    const referralCodeRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, initialReferralCode);
+                    const referralDoc = await getDoc(referralCodeRef);
+                    if (!referralDoc.exists()) {
+                        await setDoc(referralCodeRef, { initial: true });
+                    }
+
+                    // Check for existing user or sign in anonymously to manage session state
+                    // This is for local testing. We don't want to use anonymous auth if a user is already signed in.
+                    onAuthStateChanged(auth, async (user) => {
+                        if (isNavigating) {
+                            return;
+                        }
+
+                        if (user) {
+                            userId = user.uid;
+                            userIdValue.textContent = userId;
+                            console.log('User authenticated with ID:', userId);
+                            await checkUserProfile();
+                        } else {
+                            console.log('No user is authenticated.');
+                            userId = null;
+                            appNav.classList.add('hidden');
+                            showPage(referralPage, null);
+                        }
+                    });
+
+                } else {
+                    console.error("Firebase config is missing. App will not function correctly.");
+                    showModal("App is not configured. Please ensure Firebase configuration is provided.");
+                }
+            } catch (error) {
+                console.error("Firebase Auth error:", error);
+                showModal("Failed to authenticate. Please try reloading the page.");
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        // --- App Logic and Functions ---
+        
+        /**
+         * Checks if the user has a profile in Firestore and redirects accordingly.
+         */
+        async function checkUserProfile() {
+            showLoading(true);
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, userId);
+            const userDoc = await getDoc(userDocRef);
+
+            isNavigating = true; // Set flag to prevent `onAuthStateChanged` from interfering
+            if (userDoc.exists()) {
+                currentUser = userDoc.data();
+                console.log("Existing user profile found:", currentUser);
+                appNav.classList.remove('hidden');
+                await loadAndShowHomePage();
+                await checkNewMatches();
+            } else {
+                console.log("New user. Redirecting to onboarding.");
+                currentUser = {
+                    id: userId, name: null, age: null, major: null, semester: null, bio: null,
+                    gender: null, interests: [], photos: [], referralCode: null,
+                    lastMatchCheck: new Date()
+                };
+                renderInterests();
+                appNav.classList.add('hidden');
+                showPage(detailsPage, null);
+            }
+            isNavigating = false; // Reset flag after navigation is complete
+            showLoading(false);
+        }
+
+        /**
+         * Fetches other user profiles from Firestore and starts the matching process.
+         */
+        async function loadAndShowHomePage() {
+            showLoading(true);
+            try {
+                const profilesRef = collection(db, `artifacts/${appId}/users/${userId}/profiles`);
+                const allProfilesSnapshot = await getDocs(profilesRef);
+                
+                const allProfiles = allProfilesSnapshot.docs.map(doc => doc.data());
+
+                const likesRef = collection(db, `artifacts/${appId}/users/${userId}/likes`);
+                const likesSnapshot = await getDocs(likesRef);
+                const likedUserIds = likesSnapshot.docs.map(doc => doc.id);
+
+                matchedProfiles = allProfiles.filter(profile =>
+                    profile.id !== userId &&
+                    !likedUserIds.includes(profile.id) &&
+                    profile.gender !== currentUser.gender &&
+                    profile.interests.some(interest => currentUser.interests.includes(interest))
+                );
+
+                console.log('Found matched profiles:', matchedProfiles);
+
+                showPage(homePage, 'nav-home');
+                currentIndex = 0;
+                renderProfile(matchedProfiles[currentIndex]);
+            } catch (e) {
+                console.error("Error fetching profiles:", e);
+                showModal("Could not load profiles. Please try again.");
+            }
+            showLoading(false);
+        }
+        
+        async function loadAndShowMessagesPage() {
+            showLoading(true);
+            matchesList.innerHTML = '';
+            
+            const matchesRef = collection(db, `artifacts/${appId}/users/${userId}/matches`);
+            const q = query(matchesRef);
+            
+            if (matchListener) {
+                matchListener();
+            }
+
+            matchListener = onSnapshot(q, async (snapshot) => {
+                matches = snapshot.docs.map(doc => doc.data());
+                
+                if (matches.length === 0) {
+                    document.getElementById('no-matches-message').classList.remove('hidden');
+                } else {
+                    document.getElementById('no-matches-message').classList.add('hidden');
+                    matchesList.innerHTML = '';
+                    for (const match of matches) {
+                        const matchedUserDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, match.matchedUserId);
+                        const matchedUserDoc = await getDoc(matchedUserDocRef);
+                        const matchedUserProfile = matchedUserDoc.data();
+                        
+                        const matchCard = document.createElement('div');
+                        matchCard.className = 'flex items-center p-4 bg-gray-100 rounded-xl shadow-sm hover:bg-gray-200 transition-colors cursor-pointer';
+                        matchCard.innerHTML = `
+                            <img src="${matchedUserProfile.photos[0]}" alt="${matchedUserProfile.name}" class="w-12 h-12 rounded-full object-cover">
+                            <div class="ml-4">
+                                <p class="font-semibold text-gray-900">${matchedUserProfile.name}</p>
+                                <p class="text-sm text-gray-500">Matched on ${new Date(match.timestamp.seconds * 1000).toLocaleDateString()}</p>
+                            </div>
+                        `;
+                        matchesList.appendChild(matchCard);
+                    }
+                }
+            });
+            showPage(messagesPage, 'nav-messages');
+            showLoading(false);
+        }
+
+        async function saveUser(userData) {
+            showLoading(true);
+            try {
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, userId);
+                await setDoc(userDocRef, { ...userData, id: userId });
+                console.log("User profile saved successfully!");
+                showModal("Profile created successfully! You can now start matching.");
+                
+                const referralCodesRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, userData.referralCode);
+                await setDoc(referralCodesRef, { userId: userId });
+                
+                currentUser = userData;
+                appNav.classList.remove('hidden');
+
+                loadAndShowHomePage();
+            } catch (e) {
+                console.error("Error writing user data:", e);
+                showModal("Error saving profile. Please try again.");
+            }
+            showLoading(false);
+        }
+        
+        async function checkNewMatches() {
+            const matchesRef = collection(db, `artifacts/${appId}/users/${userId}/matches`);
+            const q = query(matchesRef);
+            const matchesSnapshot = await getDocs(q);
+            
+            const newMatches = matchesSnapshot.docs.filter(doc => {
+                const matchData = doc.data();
+                const lastCheckTime = currentUser.lastMatchCheck ? currentUser.lastMatchCheck.toDate() : new Date(0);
+                return matchData.timestamp.toDate() > lastCheckTime;
+            });
+
+            if (newMatches.length > 0) {
+                const firstNewMatch = newMatches[0];
+                const matchedUserDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, firstNewMatch.matchedUserId);
+                const matchedUserDoc = await getDoc(matchedUserDocRef);
+                const matchedUserProfile = matchedUserDoc.data();
+
+                if (matchedUserProfile) {
+                    matchName.textContent = `You and ${matchedUserProfile.name} are a perfect buzz!`;
+                    matchPhoto.src = matchedUserProfile.photos[0];
+                    matchModal.classList.remove('hidden');
+                }
+                
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, userId);
+                await setDoc(userDocRef, { lastMatchCheck: new Date() }, { merge: true });
+            }
+        }
+
+        function renderInterests() {
+            interestsContainer.innerHTML = '';
+            availableInterests.forEach(interest => {
+                const chip = document.createElement('div');
+                chip.className = 'interest-chip cursor-pointer bg-gray-200 text-gray-700 px-4 py-2 rounded-full font-semibold hover:bg-blue-200 transition-colors duration-200';
+                chip.textContent = interest;
+                chip.setAttribute('data-interest', interest);
+                chip.addEventListener('click', () => {
+                    if (chip.classList.contains('bg-blue-600')) {
+                        chip.classList.remove('bg-blue-600', 'text-white');
+                        const index = currentUser.interests.indexOf(interest);
+                        if (index > -1) {
+                            currentUser.interests.splice(index, 1);
+                        }
+                    } else if (currentUser.interests.length < 5) {
+                        chip.classList.add('bg-blue-600', 'text-white');
+                        currentUser.interests.push(interest);
+                    } else {
+                        showModal('You can only select up to 5 interests.');
+                    }
+                });
+                interestsContainer.appendChild(chip);
+            });
+        }
+        
+        function renderProfile(profile) {
+            if (!profile) {
+                profileContainer.innerHTML = '';
+                dislikeBtn.classList.add('hidden');
+                likeBtn.classList.add('hidden');
+                noMoreProfilesMessage.classList.remove('hidden');
+                return;
+            }
+
+            const card = document.createElement('div');
+            card.className = "absolute top-0 left-0 w-full h-[85%] bg-white rounded-3xl shadow-xl overflow-hidden";
+            
+            const photoGallery = document.createElement('div');
+            photoGallery.className = 'relative w-full h-full';
+            const photos = profile.photos && profile.photos.length > 0 ? profile.photos : ['https://placehold.co/400x500/cccccc/333333?text=No+Photo'];
+            photos.forEach((photoUrl, index) => {
+                const img = document.createElement('img');
+                img.src = photoUrl;
+                img.alt = `Photo of ${profile.name}`;
+                img.className = `w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-300 ${index === 0 ? 'opacity-100' : 'opacity-0'}`;
+                img.setAttribute('data-index', index);
+                photoGallery.appendChild(img);
+            });
+            card.appendChild(photoGallery);
+
+            let currentPhotoIndex = 0;
+            card.addEventListener('click', () => {
+                const photoEls = photoGallery.querySelectorAll('img');
+                photoEls[currentPhotoIndex].classList.remove('opacity-100');
+                photoEls[currentPhotoIndex].classList.add('opacity-0');
+                currentPhotoIndex = (currentPhotoIndex + 1) % photoEls.length;
+                photoEls[currentPhotoIndex].classList.remove('opacity-0');
+                photoEls[currentPhotoIndex].classList.add('opacity-100');
+            });
+
+            card.innerHTML += `
+                <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h2 class="text-3xl font-extrabold">${profile.name}, ${profile.age}</h2>
+                            <p class="mt-1 text-sm font-light text-gray-200">${profile.major}, Semester ${profile.semester}</p>
+                        </div>
+                    </div>
+                    <div id="shared-interests" class="flex flex-wrap gap-2 mt-4"></div>
+                    <p class="mt-4 text-base font-medium">${profile.bio}</p>
+                </div>
+            `;
+
+            profileContainer.innerHTML = '';
+            profileContainer.appendChild(card);
+            
+            const sharedInterestsContainer = card.querySelector('#shared-interests');
+            const shared = currentUser.interests.filter(interest => profile.interests.includes(interest));
+            shared.forEach(interest => {
+                const chip = document.createElement('div');
+                chip.className = 'bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full';
+                chip.textContent = interest;
+                sharedInterestsContainer.appendChild(chip);
+            });
+        }
+
+        async function handleSwipe(action) {
+            const profileCard = profileContainer.querySelector('div');
+            if (!profileCard) return;
+
+            const likedUserId = matchedProfiles[currentIndex].id;
+
+            if (action === 'like') {
+                profileCard.classList.add('animate-swipe-right');
+                
+                const likeRef = doc(db, `artifacts/${appId}/users/${userId}/likes`, likedUserId);
+                await setDoc(likeRef, { likedAt: new Date() });
+
+                const otherUserLikesRef = doc(db, `artifacts/${appId}/users/${likedUserId}/likes`, userId);
+                const otherUserLikesDoc = await getDoc(otherUserLikesRef);
+                if (otherUserLikesDoc.exists()) {
+                    console.log("It's a MATCH!");
+                    const myMatchRef = doc(db, `artifacts/${appId}/users/${userId}/matches`, likedUserId);
+                    await setDoc(myMatchRef, { matchedUserId: likedUserId, timestamp: new Date() });
+                    const theirMatchRef = doc(db, `artifacts/${appId}/users/${likedUserId}/matches`, userId);
+                    await setDoc(theirMatchRef, { matchedUserId: userId, timestamp: new Date() });
+                }
+
+            } else {
+                profileCard.classList.add('animate-swipe-left');
+            }
+
+            setTimeout(() => {
+                currentIndex++;
+                renderProfile(matchedProfiles[currentIndex]);
+            }, 500);
+        }
+
+        function showPage(pageToShow, navId) {
+            referralPage.classList.add('hidden');
+            welcomePage.classList.add('hidden');
+            loginPage.classList.add('hidden');
+            signupPage.classList.add('hidden');
+            detailsPage.classList.add('hidden');
+            homePage.classList.add('hidden');
+            messagesPage.classList.add('hidden');
+            profilePage.classList.add('hidden');
+            
+            pageToShow.classList.remove('hidden');
+
+            document.querySelectorAll('nav button').forEach(button => {
+                button.classList.remove('text-blue-600', 'font-semibold');
+                button.classList.add('text-gray-400');
+            });
+            const activeNavButton = document.getElementById(navId);
+            if (activeNavButton) {
+                activeNavButton.classList.remove('text-gray-400');
+                activeNavButton.classList.add('text-blue-600', 'font-semibold');
+            }
+        }
+
+        // --- Event Listeners and On-page Navigations ---
+        
+        referralForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const code = referralCodeInput.value;
+            
+            showLoading(true);
+            const referralCodesRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, code);
+            const referralDoc = await getDoc(referralCodesRef);
+            
+            if (referralDoc.exists()) {
+                isNavigating = true;
+                showPage(welcomePage, null);
+            } else {
+                referralError.classList.remove('hidden');
+            }
+            showLoading(false);
+        });
+
+        goToLoginBtn.addEventListener('click', () => showPage(loginPage, null));
+        goToSignupBtn.addEventListener('click', () => showPage(signupPage, null));
+        
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            loginError.classList.add('hidden');
+
+            showLoading(true);
+            isNavigating = true;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('Login error:', error);
+                loginError.textContent = 'Invalid email or password. Please try again.';
+                loginError.classList.remove('hidden');
+                isNavigating = false;
+            }
+            showLoading(false);
+        });
+
+        googleLoginBtn.addEventListener('click', async () => {
+            showLoading(true);
+            isNavigating = true;
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error('Google login error:', error);
+                showModal('Failed to sign in with Google. Please try again.');
+                isNavigating = false;
+            }
+            showLoading(false);
+        });
+        
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            signupError.classList.add('hidden');
+
+            showLoading(true);
+            isNavigating = true;
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                console.error('Signup error:', error);
+                signupError.textContent = error.message;
+                signupError.classList.remove('hidden');
+                isNavigating = false;
+            }
+            showLoading(false);
+        });
+
+        googleSignupBtn.addEventListener('click', async () => {
+            showLoading(true);
+            isNavigating = true;
+            const provider = new GoogleAuthProvider();
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error('Google signup error:', error);
+                showModal('Failed to sign up with Google. Please try again.');
+                isNavigating = false;
+            }
+            showLoading(false);
+        });
+
+        detailsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const selectedInterests = currentUser.interests;
+            const photoFiles = Array.from(photoInputs).map(input => input.files[0]).filter(Boolean);
+
+            if (selectedInterests.length === 0) {
+                showModal('Please select at least one interest.');
+                return;
+            }
+            if (photoFiles.length < 3) {
+                photoError.classList.remove('hidden');
+                return;
+            } else {
+                photoError.classList.add('hidden');
+            }
+            
+            showLoading(true);
+            const photosBase64 = await Promise.all(photoFiles.map(file => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(file);
+                });
+            }));
+            
+            const newReferralCode = Math.random().toString(36).substring(2, 12).toUpperCase();
+
+            const userData = {
+                name: document.getElementById('user-name').value,
+                age: document.getElementById('user-age').value,
+                major: document.getElementById('user-major').value,
+                semester: document.getElementById('user-semester').value,
+                bio: document.getElementById('user-bio').value,
+                gender: document.querySelector('input[name="gender"]:checked').value,
+                interests: selectedInterests,
+                photos: photosBase64,
+                referralCode: newReferralCode,
+                lastMatchCheck: new Date()
+            };
+            
+            saveUser(userData);
+        });
+        
+        photoInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                const photoId = input.getAttribute('data-photo-id');
+                const previewImg = document.querySelector(`.photo-preview[data-photo-id="${photoId}"]`);
+                if (e.target.files && e.target.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        previewImg.src = e.target.result;
+                        previewImg.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                }
+            });
+        });
+
+        dislikeBtn.addEventListener('click', () => handleSwipe('dislike'));
+        likeBtn.addEventListener('click', () => handleSwipe('like'));
+
+        navHomeBtn.addEventListener('click', () => {
+            if (currentUser) {
+                loadAndShowHomePage();
+            }
+        });
+        navMessagesBtn.addEventListener('click', () => {
+            if (currentUser) {
+                loadAndShowMessagesPage();
+            }
+        });
+        navProfileBtn.addEventListener('click', () => {
+            if (currentUser) {
+                showPage(profilePage, 'nav-profile');
+                document.getElementById('my-profile-photo').src = currentUser.photos[0];
+                document.getElementById('my-profile-name-age').textContent = `${currentUser.name}, ${currentUser.age}`;
+                document.getElementById('my-profile-major').textContent = `${currentUser.major}, Semester ${currentUser.semester}`;
+                document.getElementById('referral-code-display').textContent = currentUser.referralCode;
+                const myInterestsContainer = document.getElementById('my-profile-interests');
+                myInterestsContainer.innerHTML = '';
+                currentUser.interests.forEach(interest => {
+                    const chip = document.createElement('div');
+                    chip.className = 'bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full';
+                    chip.textContent = interest;
+                    myInterestsContainer.appendChild(chip);
+                });
+            }
+        });
+        
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (error) {
+                console.error("Error signing out:", error);
+                showModal("Could not log out. Please try again.");
+            }
+        });
+
+        copyReferralBtn.addEventListener('click', () => {
+            const code = document.getElementById('referral-code-display').textContent;
+            document.execCommand('copy');
+            showModal('Referral code copied to clipboard!');
+        });
+        
+        modalCloseBtn.addEventListener('click', () => {
+            modalContainer.classList.add('hidden');
+        });
+        
+        matchChatBtn.addEventListener('click', () => {
+            matchModal.classList.add('hidden');
+            loadAndShowMessagesPage();
+        });
+    </script>
+</body>
+</html>
