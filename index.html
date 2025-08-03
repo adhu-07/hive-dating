@@ -187,6 +187,9 @@
                 </svg>
                 Sign in with Google
             </button>
+            <button id="go-to-signup-from-login-btn" class="mt-4 text-white text-sm font-semibold opacity-70 hover:opacity-100 transition-opacity">
+                Already have an account? Log In
+            </button>
             <p id="signup-error" class="mt-4 text-red-300 hidden"></p>
         </div>
 
@@ -389,16 +392,10 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // IMPORTANT: The following variables are automatically injected by the environment for local testing.
-        // If you are hosting this app yourself, you will need to replace these with your actual Firebase project credentials.
-        // You can find these in your Firebase Console under "Project settings".
-        const appId = "hive-dating-app"; // Using the project ID for the appId
-        
-        // --- YOUR FIREBASE CONFIGURATION GOES HERE ---
-        // I have added your specific firebaseConfig object below.
+        // IMPORTANT: These are your Firebase credentials. Do not share them.
         const firebaseConfig = {
           apiKey: "AIzaSyCRwoZz2Q9Gn3EemCO2NQBqZ4x3wPuQFvw",
           authDomain: "hive-dating-app.firebaseapp.com",
@@ -408,8 +405,7 @@
           appId: "1:77015984138:web:2de8ee1f5458e3e62197f3",
           measurementId: "G-CPKCXP9C6C"
         };
-
-        const initialAuthToken = null; // No longer needed as we have explicit auth
+        const appId = firebaseConfig.projectId; // Use the projectId as a unique app ID
         
         const initialReferralCode = '1234567890';
         
@@ -422,10 +418,8 @@
         let matchListener;
         let matches = [];
 
-        // All possible interests for the sign-up form
         const availableInterests = ['Coding', 'Hiking', 'Coffee', 'Music', 'Robotics', 'Gaming', 'Reading', 'Painting', 'Psychology', 'Basketball', 'Cooking', 'Entrepreneurship', 'Art', 'History'];
 
-        // Get references to the DOM elements
         const loadingOverlay = document.getElementById('loading-overlay');
         const referralPage = document.getElementById('referral-page');
         const welcomePage = document.getElementById('welcome-page');
@@ -471,7 +465,6 @@
         const matchChatBtn = document.getElementById('match-chat-btn');
         const matchesList = document.getElementById('matches-list');
 
-        // Helper function to show a custom modal instead of alert()
         function showModal(message) {
             modalMessage.textContent = message;
             modalContainer.classList.remove('hidden');
@@ -481,94 +474,62 @@
             loadingOverlay.classList.toggle('hidden', !show);
         }
 
-        // --- Firebase Initialization and Authentication ---
-
-        // A flag to prevent re-routing during a navigation sequence
-        let isNavigating = false;
-
-        // Initialize Firebase services on page load
         document.addEventListener('DOMContentLoaded', async () => {
             showLoading(true);
             try {
-                if (Object.keys(firebaseConfig).length > 0) {
-                    const app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
 
-                    // Add initial referral code to Firestore if it doesn't exist
-                    const referralCodeRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, initialReferralCode);
-                    const referralDoc = await getDoc(referralCodeRef);
-                    if (!referralDoc.exists()) {
-                        await setDoc(referralCodeRef, { initial: true });
-                    }
-
-                    // Check for existing user or sign in anonymously to manage session state
-                    // This is for local testing. We don't want to use anonymous auth if a user is already signed in.
-                    onAuthStateChanged(auth, async (user) => {
-                        if (isNavigating) {
-                            return;
-                        }
-
-                        if (user) {
-                            userId = user.uid;
-                            userIdValue.textContent = userId;
-                            console.log('User authenticated with ID:', userId);
-                            await checkUserProfile();
-                        } else {
-                            console.log('No user is authenticated.');
-                            userId = null;
-                            appNav.classList.add('hidden');
-                            showPage(referralPage, null);
-                        }
-                    });
-
-                } else {
-                    console.error("Firebase config is missing. App will not function correctly.");
-                    showModal("App is not configured. Please ensure Firebase configuration is provided.");
+                const referralCodeRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, initialReferralCode);
+                const referralDoc = await getDoc(referralCodeRef);
+                if (!referralDoc.exists()) {
+                    await setDoc(referralCodeRef, { initial: true });
                 }
+                
+                onAuthStateChanged(auth, async (user) => {
+                    showLoading(true);
+                    if (user) {
+                        userId = user.uid;
+                        userIdValue.textContent = userId;
+                        console.log('User authenticated with ID:', userId);
+
+                        const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, userId);
+                        const userDoc = await getDoc(userDocRef);
+
+                        if (userDoc.exists()) {
+                            currentUser = userDoc.data();
+                            console.log("Existing user profile found:", currentUser);
+                            appNav.classList.remove('hidden');
+                            await loadAndShowHomePage();
+                            await checkNewMatches();
+                        } else {
+                            console.log("New user. Redirecting to onboarding.");
+                            currentUser = {
+                                id: userId, name: null, age: null, major: null, semester: null, bio: null,
+                                gender: null, interests: [], photos: [], referralCode: null,
+                                lastMatchCheck: new Date()
+                            };
+                            renderInterests();
+                            appNav.classList.add('hidden');
+                            showPage(detailsPage, null);
+                        }
+                    } else {
+                        console.log('No user is authenticated. Showing referral page.');
+                        userId = null;
+                        appNav.classList.add('hidden');
+                        showPage(referralPage, null);
+                    }
+                    showLoading(false);
+                });
+
             } catch (error) {
-                console.error("Firebase Auth error:", error);
-                showModal("Failed to authenticate. Please try reloading the page.");
-            } finally {
+                console.error("Firebase Auth or DB error:", error);
+                showModal("An error occurred. Please check your Firebase configuration and security rules.");
                 showLoading(false);
             }
         });
 
-        // --- App Logic and Functions ---
-        
-        /**
-         * Checks if the user has a profile in Firestore and redirects accordingly.
-         */
-        async function checkUserProfile() {
-            showLoading(true);
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/profiles`, userId);
-            const userDoc = await getDoc(userDocRef);
-
-            isNavigating = true; // Set flag to prevent `onAuthStateChanged` from interfering
-            if (userDoc.exists()) {
-                currentUser = userDoc.data();
-                console.log("Existing user profile found:", currentUser);
-                appNav.classList.remove('hidden');
-                await loadAndShowHomePage();
-                await checkNewMatches();
-            } else {
-                console.log("New user. Redirecting to onboarding.");
-                currentUser = {
-                    id: userId, name: null, age: null, major: null, semester: null, bio: null,
-                    gender: null, interests: [], photos: [], referralCode: null,
-                    lastMatchCheck: new Date()
-                };
-                renderInterests();
-                appNav.classList.add('hidden');
-                showPage(detailsPage, null);
-            }
-            isNavigating = false; // Reset flag after navigation is complete
-            showLoading(false);
-        }
-
-        /**
-         * Fetches other user profiles from Firestore and starts the matching process.
-         */
         async function loadAndShowHomePage() {
             showLoading(true);
             try {
@@ -839,16 +800,21 @@
             const code = referralCodeInput.value;
             
             showLoading(true);
-            const referralCodesRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, code);
-            const referralDoc = await getDoc(referralCodesRef);
-            
-            if (referralDoc.exists()) {
-                isNavigating = true;
-                showPage(welcomePage, null);
-            } else {
-                referralError.classList.remove('hidden');
+            try {
+                const referralCodesRef = doc(db, `artifacts/${appId}/public/data/referral-codes`, code);
+                const referralDoc = await getDoc(referralCodesRef);
+                
+                if (referralDoc.exists()) {
+                    showPage(welcomePage, null);
+                } else {
+                    referralError.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error("Referral check error:", error);
+                showModal("An error occurred. Please try again.");
+            } finally {
+                showLoading(false);
             }
-            showLoading(false);
         });
 
         goToLoginBtn.addEventListener('click', () => showPage(loginPage, null));
@@ -861,30 +827,30 @@
             loginError.classList.add('hidden');
 
             showLoading(true);
-            isNavigating = true;
             try {
                 await signInWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle the rest
             } catch (error) {
                 console.error('Login error:', error);
                 loginError.textContent = 'Invalid email or password. Please try again.';
                 loginError.classList.remove('hidden');
-                isNavigating = false;
+            } finally {
+                showLoading(false);
             }
-            showLoading(false);
         });
 
         googleLoginBtn.addEventListener('click', async () => {
             showLoading(true);
-            isNavigating = true;
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
+                // onAuthStateChanged will handle the rest
             } catch (error) {
                 console.error('Google login error:', error);
                 showModal('Failed to sign in with Google. Please try again.');
-                isNavigating = false;
+            } finally {
+                showLoading(false);
             }
-            showLoading(false);
         });
         
         signupForm.addEventListener('submit', async (e) => {
@@ -894,30 +860,30 @@
             signupError.classList.add('hidden');
 
             showLoading(true);
-            isNavigating = true;
             try {
                 await createUserWithEmailAndPassword(auth, email, password);
+                // onAuthStateChanged will handle the rest
             } catch (error) {
                 console.error('Signup error:', error);
                 signupError.textContent = error.message;
                 signupError.classList.remove('hidden');
-                isNavigating = false;
+            } finally {
+                showLoading(false);
             }
-            showLoading(false);
         });
 
         googleSignupBtn.addEventListener('click', async () => {
             showLoading(true);
-            isNavigating = true;
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
+                // onAuthStateChanged will handle the rest
             } catch (error) {
                 console.error('Google signup error:', error);
                 showModal('Failed to sign up with Google. Please try again.');
-                isNavigating = false;
+            } finally {
+                showLoading(false);
             }
-            showLoading(false);
         });
 
         detailsForm.addEventListener('submit', async (e) => {
